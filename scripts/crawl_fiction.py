@@ -25,7 +25,7 @@ RETRY_DELAY = 5
 POLITENESS_DELAY_PER_THREAD = 1.0  # Delay after a thread saves a chapter
 SUB_PAGE_DELAY = 0.2
 
-MAX_CONSECUTIVE_CHAPTER_FAILURES_PER_THREAD = 5
+MAX_CONSECUTIVE_CHAPTER_FAILURES_PER_THREAD = 2
 
 # --- Logging Setup ---
 # Configure logging before any threads might use it.
