@@ -2,3 +2,8 @@ requests
 beautifulsoup4
 
 elasticsearch
+
+pydantic
+
+google-cloud-aiplatform
+google-generativeai

@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: fiction-wiki-builder
+Version: 0.1.0
+Summary: AI-powered wiki builder for fiction books.
+Author-email: So Kin Pui <sosokinpui@gmail.com>
+License: MIT
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+
+AI Fiction wiki builder

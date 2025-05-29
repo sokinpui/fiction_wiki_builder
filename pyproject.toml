@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fiction-wiki-builder"
+version = "0.1.0"
+description = "AI-powered wiki builder for fiction books."
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+    { name = "So Kin Pui", email = "sosokinpui@gmail.com" },
+]
+license = { text = "MIT" }
+
+
+[tool.setuptools]
+package-dir = { "" = "src" }  # Tells setuptools to look in src/ for packages
+
+[tool.setuptools.packages.find]
+where = ["src"]  # Finds packages under src/
+include = ["fwb"]  # Ensures logllm and submodules are included
+
+
+[tool.black]
+line-length = 88  # Default for Black, matches Python's style guide
+
+[tool.isort]
+profile = "black"  # Ensures compatibility with Black
+
