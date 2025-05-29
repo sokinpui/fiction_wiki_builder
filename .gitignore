@@ -3,3 +3,8 @@
 .direnv
 
 books
+
+log.txt
+
+*.log
+log.*
