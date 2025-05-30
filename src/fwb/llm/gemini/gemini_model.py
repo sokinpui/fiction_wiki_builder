@@ -22,7 +22,7 @@ except ImportError:
     )
 
 
-class GeminiLLMHandler:
+class Gemini:
     def __init__(self, api_key: Optional[str] = None):
         # Get a logger instance. Naming it after the class is a common convention.
         self._logger = logging.getLogger(f"{__name__}.GeminiLLMHandler")
