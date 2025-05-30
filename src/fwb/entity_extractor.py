@@ -1,8 +1,15 @@
+import json
 import logging
+from datetime import datetime
 
 from elasticsearch import Elasticsearch
 
 from .llm.gemini import Gemini
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(threadName)s - %(message)s",
+)
 
 
 class EntityExtractor:
@@ -18,6 +25,11 @@ class EntityExtractor:
         self.book_id = book_id
         self.es_index = f"book_{self.book_id}"
         self.current_chapter_id = 0
+        self.output_index = f"entities_{self.es_index}"
+
+        logging.info(
+            f"EntityExtractor initialized for book_id: {book_id}, output_index: {self.output_index}"
+        )
 
     @staticmethod
     def _load_extraction_prompts(file_path):
@@ -28,6 +40,10 @@ class EntityExtractor:
         """
         Extract entities from the given text using the prompts.
         """
+
+        logging.info(
+            f"Extracting entities for chapter_id: {self.current_chapter_id}..."
+        )
 
         response = self.model.chat(text + self.extract_entity_prompt)
 
@@ -48,21 +64,44 @@ class EntityExtractor:
             print(f"Error inserting document into {index_name}: {e}")
 
     def process_data(self):
-        index = f"entities_{self.es_index}"
         for chapter_id in range(1, self.get_book_length() + 1):
             chapter_text = self.read_chapter(chapter_id)
             if chapter_text:
                 entities = self.extract_entities(chapter_text)
                 document = {
                     "chapter_number": chapter_id,
-                    "entities": entities,
+                    "entities": json.loads(entities),
                 }
-                self.insert_to_es(index, document)
+                self.insert_to_es(self.output_index, document)
             else:
                 logging.warning(
                     f"Chapter {chapter_id} not found or empty in book {self.book_id}."
                 )
         pass
+
+    def process_chapter(self, chapter_id: int):
+        """
+        Processes a specific chapter by its ID, extracting entities and
+        inserting them into Elasticsearch.
+
+        Args:
+            chapter_id: The integer ID of the chapter (e.g., 1 for chapter 1).
+        """
+        self.current_chapter_id = chapter_id
+        chapter_text = self.read_chapter(chapter_id)
+
+        if chapter_text:
+            entities = self.extract_entities(chapter_text)
+            document = {
+                "chapter_number": chapter_id,
+                "@timestamp": datetime.now().isoformat(),
+                "entities": entities,
+            }
+            self.insert_to_es(self.output_index, document)
+        else:
+            logging.warning(
+                f"Chapter {chapter_id} not found or empty in book {self.book_id}."
+            )
 
     def read_chapter(self, chapter_id: int) -> str:
         """
