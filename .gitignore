@@ -12,3 +12,7 @@ log.*
 tmp.json
 
 __pycache__
+
+tmp/
+*tmp*
+tmp.*
