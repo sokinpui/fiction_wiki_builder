@@ -8,7 +8,7 @@ class EntityExtractor:
 
         self.es = Elasticsearch(hosts=["http://localhost:9200"])
 
-        self.extrac_prompts = self._load_extraction_prompts(
+        self.extract_entity_prompt = self._load_extraction_prompts(
             "prompt/entity_extraction.txt"
         )
         self.model = Gemini()
@@ -23,7 +23,7 @@ class EntityExtractor:
         Extract entities from the given text using the prompts.
         """
 
-        response = self.model.chat(self.extrac_prompts + text)
+        response = self.model.chat(text + self.extract_entity_prompt)
 
         parsed_response = self.model.parse_response(response)
 
