@@ -44,7 +44,7 @@ class KnowledgeExtractor:
 ---
 {chapter_content}
 ---
-请按照 'ChapterKnowledgeExtraction' 模式定义的结构化JSON格式提供输出。
+请按照 'ChapterKnowledgeExtraction' 模式定义的结构化JSON格式提供输出，无需额外的解释说明。
 """
         # Truncate chapter_content if it's too long to avoid overly large prompts,
         # though Gemini models have large context windows.
