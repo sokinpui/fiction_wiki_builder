@@ -50,7 +50,7 @@ class Gemini:
 
         raise RuntimeError("All models failed to generate content.")
 
-    def repsonse_parser(self, response: str) -> str:
+    def parse_response(self, response: str) -> str:
         """remove the markdown code block"""
         try:
             if not response:
@@ -92,7 +92,7 @@ def main():
     response = gemini.chat(text)
 
     print("Response from Gemini:")
-    print(gemini.repsonse_parser(response))
+    print(gemini.parse_response(response))
 
 
 if __name__ == "__main__":

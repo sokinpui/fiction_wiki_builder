@@ -1,9 +1,6 @@
 requests
 beautifulsoup4
-
 elasticsearch
-
 pydantic
-
-google-cloud-aiplatform
-google-generativeai
+google-genai
+httpx[socks]
