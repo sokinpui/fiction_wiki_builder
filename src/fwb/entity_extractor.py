@@ -1,7 +1,8 @@
 import logging
 
 from elasticsearch import Elasticsearch
-from llm.gemini import Gemini
+
+from .llm.gemini import Gemini
 
 
 class EntityExtractor:
@@ -10,7 +11,7 @@ class EntityExtractor:
         self.es = Elasticsearch(hosts=["http://localhost:9200"])
 
         self.extract_entity_prompt = self._load_extraction_prompts(
-            "prompt/entity_extraction.txt"
+            "./prompt/entity_extraction.txt"
         )
 
         self.model = Gemini()
@@ -32,6 +33,8 @@ class EntityExtractor:
 
         parsed_response = self.model.parse_response(response)
 
+        print(f"Extracted entities:\n{parsed_response}")
+
         return parsed_response
 
     def insert_to_es(self, index_name: str, document: dict):
@@ -45,6 +48,20 @@ class EntityExtractor:
             print(f"Error inserting document into {index_name}: {e}")
 
     def process_data(self):
+        index = f"entities_{self.es_index}"
+        for chapter_id in range(1, self.get_book_length() + 1):
+            chapter_text = self.read_chapter(chapter_id)
+            if chapter_text:
+                entities = self.extract_entities(chapter_text)
+                document = {
+                    "chapter_number": chapter_id,
+                    "entities": entities,
+                }
+                self.insert_to_es(index, document)
+            else:
+                logging.warning(
+                    f"Chapter {chapter_id} not found or empty in book {self.book_id}."
+                )
         pass
 
     def read_chapter(self, chapter_id: int) -> str:
@@ -125,9 +142,8 @@ def main():
     # Example usage of EntityExtractor
     book_id = "46029"
     extractor = EntityExtractor(book_id)
-    chapter_id = 1
-    print(f"Total chapters in book {book_id}: {extractor.get_book_length()}")
-    pass
+    print(f"Processing book with ID: {book_id}")
+    extractor.process_data()
 
 
 if __name__ == "__main__":
