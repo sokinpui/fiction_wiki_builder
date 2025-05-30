@@ -31,7 +31,7 @@ class EntityExtractor:
 
     def insert_to_es(self, index_name: str, document: dict):
         """
-        Insert a document into the specified Elasticsearch index.
+        Insert a document into the specified Elasticsearch indexand gemini llm.
         """
         try:
             self.es.index(index=index_name, body=document)
