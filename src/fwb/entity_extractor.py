@@ -1,189 +1,98 @@
-import json
-import logging
-from datetime import datetime
-
 from elasticsearch import Elasticsearch
 
 from .llm.gemini import Gemini
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(threadName)s - %(message)s",
-)
-
 
 class EntityExtractor:
-    def __init__(self, book_id: str):
+    def __init__(self, book_id, cuhnk_length: int = 1):
+        self.model: Gemini = Gemini()
 
-        self.es = Elasticsearch(hosts=["http://localhost:9200"])
+        self.book_id: str = book_id
 
-        self.extract_entity_prompt = self._load_extraction_prompts(
-            "./prompt/entity_extraction.txt"
-        )
+        self._source_index: str = f"book_{self.book_id}"
 
-        self.model = Gemini()
-        self.book_id = book_id
-        self.es_index = f"book_{self.book_id}"
-        self.current_chapter_id = 0
-        self.output_index = f"entities_{self.es_index}"
+        self._progress_index: str = f"progress_{self.book_id}"
 
-        logging.info(
-            f"EntityExtractor initialized for book_id: {book_id}, output_index: {self.output_index}"
-        )
+        self._output_index: str = f"entities_{self.book_id}"
+
+        self.prompt: str = self._get_prompt("./prompt/entity_extraction.txt")
+
+        self.chunk_length: int = cuhnk_length
+
+        self._es = Elasticsearch(hosts=["http://localhost:9200"])
+
+    def extract_entities(self, text: str) -> str:
+        """
+        prompts to AI to extract entities from the given text.
+
+        return a json string with the extracted entities.
+        """
+
+        context = ""
+        source = context + text + self.prompt
+        raw_output = self.model.chat(source)
+        response = self.model.parse_response(raw_output)
+
+        return response
 
     @staticmethod
-    def _load_extraction_prompts(file_path):
+    def _get_prompt(file_path: str) -> str:
+        """
+        Reads the prompt from a file.
+        """
         with open(file_path, "r") as file:
             return file.read()
 
-    def extract_entities(self, text) -> str:
+    def get_chunk(self, book_id) -> str:
         """
-        Extract entities from the given text using the prompts.
+        Get the chunk of text to process.
         """
+        chunk = ""
+        chunk_id = str(self.get_chunk_id())
+        for i in range(1, self.chunk_length + 1):
+            pass
+            # try:
+            #     response = self._es.get(index="chunks", id=f"{id}-{i}")
+            #     return response["_source"]["text"]
+            # except Exception as e:
+            #     print(f"Error getting chunk {id}-{i}: {e}")
+            ## get the chunk from elasticsearch
 
-        logging.info(
-            f"Extracting entities for chapter_id: {self.current_chapter_id}..."
-        )
-
-        response = self.model.chat(text + self.extract_entity_prompt)
-
-        parsed_response = self.model.parse_response(response)
-
-        print(f"Extracted entities:\n{parsed_response}")
-
-        return parsed_response
-
-    def insert_to_es(self, index_name: str, document: dict):
+    def get_chunk_id(self) -> int:
         """
-        Insert a document into the specified Elasticsearch indexand gemini llm.
+        Get the current chunk ID from Elasticsearch.
         """
         try:
-            self.es.index(index=index_name, body=document)
-            print(f"Document inserted into {index_name} successfully.")
+            response = self._es.get(index=self._progress_index, id="current")
+            return response["_source"]["id"]
         except Exception as e:
-            print(f"Error inserting document into {index_name}: {e}")
-
-    def process_data(self):
-        for chapter_id in range(1, self.get_book_length() + 1):
-            chapter_text = self.read_chapter(chapter_id)
-            if chapter_text:
-                entities = self.extract_entities(chapter_text)
-                document = {
-                    "chapter_number": chapter_id,
-                    "entities": json.loads(entities),
-                }
-                self.insert_to_es(self.output_index, document)
-            else:
-                logging.warning(
-                    f"Chapter {chapter_id} not found or empty in book {self.book_id}."
-                )
-        pass
-
-    def process_chapter(self, chapter_id: int):
-        """
-        Processes a specific chapter by its ID, extracting entities and
-        inserting them into Elasticsearch.
-
-        Args:
-            chapter_id: The integer ID of the chapter (e.g., 1 for chapter 1).
-        """
-        self.current_chapter_id = chapter_id
-        chapter_text = self.read_chapter(chapter_id)
-
-        if chapter_text:
-            entities = self.extract_entities(chapter_text)
-            document = {
-                "chapter_number": chapter_id,
-                "@timestamp": datetime.now().isoformat(),
-                "entities": entities,
-            }
-            self.insert_to_es(self.output_index, document)
-        else:
-            logging.warning(
-                f"Chapter {chapter_id} not found or empty in book {self.book_id}."
-            )
-
-    def read_chapter(self, chapter_id: int) -> str:
-        """
-        Reads a chapter from the book by its ID and returns the text content.
-
-        Args:
-            chapter_id: The integer ID of the chapter (e.g., 1 for chapter 1).
-
-        Returns:
-            The chapter content as a string, or an empty string if not found
-            or an error occurs.
-        """
-        self.current_chapter_id = chapter_id
-        return self.get_chapter_text(chapter_id)
-
-    def get_book_length(self) -> int:
-        """
-        Retrieves the total number of chapters in the book from Elasticsearch.
-
-        Returns:
-            The total number of chapters as an integer, or 0 if not found
-            or an error occurs.
-        """
-        query = {
-            "query": {"match_all": {}},
-            "size": 0,
-            "aggs": {"total_chapters": {"cardinality": {"field": "chapter_number"}}},
-        }
-
-        try:
-            response = self.es.search(index=self.es_index, body=query)
-            return response["aggregations"]["total_chapters"]["value"]
-
-        except Exception as e:
-            logging.error(
-                f"Error retrieving book length for {self.book_id} (index {self.es_index}): {e}"
-            )
+            print(f"Error getting chunk ID: {e}")
             return 0
 
-    def get_chapter_text(self, chapter_id: int) -> str:
+    def reset_chunk_id(self) -> None:
         """
-        Retrieves the text content of a specific chapter from Elasticsearch.
-
-        Args:
-            chapter_id: The integer ID of the chapter (e.g., 1 for chapter 1).
-
-        Returns:
-            The chapter content as a string, or an empty string if not found
-            or an error occurs.
+        Reset the chunk ID in Elasticsearch.
         """
-        query = {
-            "query": {
-                "term": {
-                    # Field name from ingest_books.py mapping
-                    "chapter_number": chapter_id
-                }
-            }
-        }
-
         try:
-            response = self.es.search(index=self.es_index, body=query)
-
-            return (
-                response["hits"]["hits"][0]["_source"]["chapter_content"]
-                if response["hits"]["hits"]
-                else ""
-            )
-
+            self._es.index(index=self._progress_index, id="current", body={"id": 1})
         except Exception as e:
-            logging.error(
-                f"Error retrieving chapter {chapter_id} from book {self.book_id} (index {self.es_index}): {e}"
-            )
-            return ""
+            print(f"Error resetting chunk ID: {e}")
 
+    def set_chunk_id(self, id: int) -> None:
+        """
+        Set the current chunk ID in Elasticsearch.
+        """
+        try:
+            self._es.index(index=self._progress_index, id="current", body={"id": id})
+        except Exception as e:
+            print(f"Error setting chunk ID: {e}")
 
-def main():
-    # Example usage of EntityExtractor
-    book_id = "46029"
-    extractor = EntityExtractor(book_id)
-    print(f"Processing book with ID: {book_id}")
-    extractor.process_data()
-
-
-if __name__ == "__main__":
-    main()
+    def save_entities(self, entities: str) -> None:
+        """
+        Save the extracted entities to Elasticsearch.
+        """
+        # try:
+        #     self._es.index(index=self._output_index, id=self.get_chunk_id(), body={"entities": entities})
+        # except Exception as e:
+        #     print(f"Error saving entities: {e}")
+        pass

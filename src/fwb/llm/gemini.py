@@ -32,7 +32,7 @@ class Gemini:
             return 0
         return _tokenizer.count_tokens(text).total_tokens
 
-    def chat(self, message) -> str:
+    def chat(self, message: str) -> str:
         """Send a chat message to the Gemini model and return the response."""
         if not isinstance(message, str):
             raise ValueError("Message must be a string.")
