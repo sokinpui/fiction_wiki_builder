@@ -1,25 +1,21 @@
-from elasticsearch import Elasticsearch
-
+from .es_storage import ElasticsearchStore
 from .llm.gemini import Gemini
 
 
 class EntityExtractor:
     def __init__(self, book_id, cuhnk_length: int = 1):
+        # init llm model
         self.model: Gemini = Gemini()
+        self.extract_prompt: str = self._get_prompt("./prompt/entity_extraction.txt")
 
+        # book to read
         self.book_id: str = book_id
 
-        self._source_index: str = f"book_{self.book_id}"
-
-        self._progress_index: str = f"progress_{self.book_id}"
-
-        self._output_index: str = f"entities_{self.book_id}"
-
-        self.prompt: str = self._get_prompt("./prompt/entity_extraction.txt")
-
+        # how many chapters to read at once
         self.chunk_length: int = cuhnk_length
 
-        self._es = Elasticsearch(hosts=["http://localhost:9200"])
+        # init elasticsearch client
+        self._es = ElasticsearchStore()
 
     def extract_entities(self, text: str) -> str:
         """
@@ -29,7 +25,8 @@ class EntityExtractor:
         """
 
         context = ""
-        source = context + text + self.prompt
+        source = context + text + self.extract_prompt
+
         raw_output = self.model.chat(source)
         response = self.model.parse_response(raw_output)
 
@@ -43,56 +40,34 @@ class EntityExtractor:
         with open(file_path, "r") as file:
             return file.read()
 
-    def get_chunk(self, book_id) -> str:
+    def get_progress(self) -> int:
         """
-        Get the chunk of text to process.
+        Retrieves the progress of reading aka chapter number
         """
-        chunk = ""
-        chunk_id = str(self.get_chunk_id())
+        return self._es.get_progress(self.book_id)
+
+    def save_progress(self, progress: int) -> None:
+        """
+        Sets the progress of reading aka chapter number
+        """
+        self._es.save_progress(self.book_id, progress)
+
+    def reset_progress(self) -> None:
+        """
+        Resets the progress of reading aka chapter number
+        """
+        self._es.reset_progress(self.book_id)
+
+    def read_book(self) -> None:
+        """
+        Reads the book in chunks and extracts entities from each chunk.
+        """
+        text = ""
         for i in range(1, self.chunk_length + 1):
-            pass
-            # try:
-            #     response = self._es.get(index="chunks", id=f"{id}-{i}")
-            #     return response["_source"]["text"]
-            # except Exception as e:
-            #     print(f"Error getting chunk {id}-{i}: {e}")
-            ## get the chunk from elasticsearch
+            progress = self.get_progress()
+            text += self._es.get_source_chunk(self.book_id, progress)
+            self._es.save_progress(self.book_id, progress + 1)
 
-    def get_chunk_id(self) -> int:
-        """
-        Get the current chunk ID from Elasticsearch.
-        """
-        try:
-            response = self._es.get(index=self._progress_index, id="current")
-            return response["_source"]["id"]
-        except Exception as e:
-            print(f"Error getting chunk ID: {e}")
-            return 0
+        response = self.extract_entities(text)
 
-    def reset_chunk_id(self) -> None:
-        """
-        Reset the chunk ID in Elasticsearch.
-        """
-        try:
-            self._es.index(index=self._progress_index, id="current", body={"id": 1})
-        except Exception as e:
-            print(f"Error resetting chunk ID: {e}")
-
-    def set_chunk_id(self, id: int) -> None:
-        """
-        Set the current chunk ID in Elasticsearch.
-        """
-        try:
-            self._es.index(index=self._progress_index, id="current", body={"id": id})
-        except Exception as e:
-            print(f"Error setting chunk ID: {e}")
-
-    def save_entities(self, entities: str) -> None:
-        """
-        Save the extracted entities to Elasticsearch.
-        """
-        # try:
-        #     self._es.index(index=self._output_index, id=self.get_chunk_id(), body={"entities": entities})
-        # except Exception as e:
-        #     print(f"Error saving entities: {e}")
-        pass
+        self._es.save_entities_to_buffer(self.book_id, response)

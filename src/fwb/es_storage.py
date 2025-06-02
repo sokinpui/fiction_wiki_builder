@@ -29,7 +29,7 @@ class ElasticsearchStore:
         """Get the index name for the book buffer."""
         return f"buffer_{book_id}"
 
-    def get_source_chunk(self, book_id: str, chunk_id: str) -> dict:
+    def get_source_chunk(self, book_id: str, chunk_id: int) -> str:
         """Retrieve a specific chunk of the book source by book ID and chunk ID."""
         index = self._get_source_index(book_id)
 
@@ -38,11 +38,11 @@ class ElasticsearchStore:
             response = self._es.search(index=index, body=query)
             hits = response.get("hits", {}).get("hits", [])
             if hits:
-                return hits[0].get("_source", {})
+                return hits[0].get("_source", {}).get("chapter_content", "")
             else:
-                return {}
+                return ""
         except NotFoundError:
-            return {}
+            return ""
 
     ## Save and retrieve reading progress for a book
     def save_progress(self, book_id: str, progress: int) -> None:
@@ -131,3 +131,14 @@ class ElasticsearchStore:
         self._es.delete_by_query(
             index=index, body={"query": {"term": {"book_id": book_id}}}
         )
+
+    def get_book_length(self, book_id: str) -> int:
+        """Get the number of chunks in the book source."""
+        index = self._get_source_index(book_id)
+
+        query = {"query": {"match_all": {}}}
+        try:
+            response = self._es.count(index=index, body=query)
+            return response.get("count", 0)
+        except NotFoundError:
+            return 0

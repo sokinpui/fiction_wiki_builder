@@ -12,7 +12,7 @@ class EntityData(BaseModel):
         description="List of historical summaries for the entity",
     )
     categories: str
-    relationships: list[dict[str, str]] = Field(
-        default_factory=list,
+    relationships: dict[str, str] = Field(
+        default_factory=dict,
         description="List of relationships with other entities",
     )
