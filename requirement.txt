@@ -4,3 +4,6 @@ elasticsearch
 pydantic
 google-genai
 httpx[socks]
+
+neo4j
+neo4j-rust-ext
