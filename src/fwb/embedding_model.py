@@ -1,12 +1,10 @@
 from sentence_transformers import SentenceTransformer
 
 
-class Vectorizer:
-    def __init__(self, model):
-        self.model = model
+class EmbeddingModel:
+    def __init__(self):
+        self.model = SentenceTransformer("BAAI/bge-m3", device="mps")
 
-    def embed(self, text):
-        return self.model.encode(text, convert_to_tensor=True)
-
-    def embed_batch(self, texts):
-        return self.model.encode(texts, convert_to_tensor=True)
+    def encode(self, texts: str | list[str]) -> list[float] | list[list[float]]:
+        """embedding"""
+        return self.model.encode(texts).tolist()
