@@ -8,7 +8,4 @@ httpx[socks]
 neo4j
 neo4j-rust-ext
 
-pymilvus
-pymilvus[model]
-
-
+ sentence-transformers
