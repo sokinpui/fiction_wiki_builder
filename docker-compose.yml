@@ -29,5 +29,22 @@ services:
       - elasticsearch
     restart: unless-stopped
 
+  neo4j:
+    image: neo4j:latest
+    container_name: neo4j
+    ports:
+      - "7474:7474" # HTTP
+      - "7687:7687" # Bolt
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      # - ./neo4j/plugins:/plugins
+    environment:
+      - NEO4J_AUTH=neo4j/P@ssw0rd
+    restart: unless-stopped
+
 volumes:
   elasticsearch_data:
+  neo4j_data:
+  neo4j_logs:
+
