@@ -1,4 +1,4 @@
-from .es_storage import ElasticsearchStore
+from .es_storage import ESBuffer
 from .llm.gemini import Gemini
 
 
@@ -15,7 +15,7 @@ class EntityExtractor:
         self.chunk_length: int = cuhnk_length
 
         # init elasticsearch client
-        self._es = ElasticsearchStore()
+        self._es = ESBuffer()
 
     def extract_entities(self, text: str) -> str:
         """
@@ -63,6 +63,7 @@ class EntityExtractor:
         Reads the book in chunks and extracts entities from each chunk.
         """
         text = ""
+        start_chunk_id = self.get_progress()
         for i in range(1, self.chunk_length + 1):
             progress = self.get_progress()
             text += self._es.get_source_chunk(self.book_id, progress)
@@ -70,4 +71,8 @@ class EntityExtractor:
 
         response = self.extract_entities(text)
 
-        self._es.save_entities_to_buffer(self.book_id, response)
+        end_chunk_id = self.get_progress()
+
+        self._es.save_entities_to_buffer(
+            self.book_id, response, start_chunk_id, end_chunk_id
+        )

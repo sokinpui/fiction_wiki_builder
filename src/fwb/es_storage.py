@@ -5,7 +5,7 @@ import uuid
 from elasticsearch import Elasticsearch, NotFoundError
 
 
-class ElasticsearchStore:
+class ESBuffer:
     """
     operation related to Elasticsearch storage for book entities and progress.
     """
@@ -73,12 +73,12 @@ class ElasticsearchStore:
             index=index, body={"query": {"term": {"book_id": book_id}}}
         )
 
-    ## Save and retrieve entities output for a book
-    def save_entities_output(
+    ## Save and retrieve entities in the buffer for a book
+    def save_entities_to_buffer(
         self, book_id: str, entities: str, starting_chunk_id: int, end_chunk_id: int
     ) -> None:
-        """Save the entities output for a book."""
-        index = self._get_output_index(book_id)
+        """Save entities to the buffer for a book."""
+        index = self._get_buffer_index(book_id)
         entities = json.loads(entities) if isinstance(entities, str) else entities
         for entity in entities:
             entity_id = str(uuid.uuid4())
@@ -89,28 +89,6 @@ class ElasticsearchStore:
                 "starting_chunk_id": starting_chunk_id,
                 "end_chunk_id": end_chunk_id,
             }
-            self._es.index(index=index, body=doc)
-
-    def get_entities_output(self, book_id: str) -> list[dict]:
-        """Retrieve the entities output for a book."""
-        index = self._get_output_index(book_id)
-
-        query = {"query": {"term": {"book_id": book_id}}}
-        try:
-            response = self._es.search(index=index, body=query)
-            hits = response.get("hits", {}).get("hits", [])
-            return [hit.get("_source", {}) for hit in hits]
-        except NotFoundError:
-            return []
-
-    ## Save and retrieve entities in the buffer for a book
-    def save_entities_to_buffer(self, book_id: str, entities: str) -> None:
-        """Save entities to the buffer for a book."""
-        index = self._get_buffer_index(book_id)
-        entities = json.loads(entities) if isinstance(entities, str) else entities
-        for entity in entities:
-            entity_id = str(uuid.uuid4())
-            doc = {"book_id": book_id, "entity": entity, "entity_id": entity_id}
             self._es.index(index=index, body=doc)
 
     def get_entities_from_buffer(self, book_id: str) -> list[dict]:
