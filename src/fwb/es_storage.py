@@ -4,6 +4,8 @@ import uuid
 
 from elasticsearch import Elasticsearch, NotFoundError
 
+from .entity_data import EntityData
+
 
 class ESBuffer:
     """
