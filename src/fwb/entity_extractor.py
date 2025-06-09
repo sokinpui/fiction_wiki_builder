@@ -3,8 +3,9 @@ from .llm.gemini import Gemini
 
 
 class EntityExtractor:
+    """extract entities from book"""
+
     def __init__(self, book_id, cuhnk_length: int = 1):
-        # init llm model
         self.model: Gemini = Gemini()
         self.extract_prompt: str = self._get_prompt("./prompt/entity_extraction.txt")
 
@@ -24,8 +25,7 @@ class EntityExtractor:
         return a json string with the extracted entities.
         """
 
-        context = ""
-        source = context + text + self.extract_prompt
+        source = text + self.extract_prompt
 
         raw_output = self.model.chat(source)
         response = self.model.parse_response(raw_output)
@@ -58,7 +58,7 @@ class EntityExtractor:
         """
         self._es.reset_progress(self.book_id)
 
-    def read_book(self) -> None:
+    def read(self, context: str) -> str:
         """
         Reads the book in chunks and extracts entities from each chunk.
         """
@@ -69,10 +69,12 @@ class EntityExtractor:
             text += self._es.get_source_chunk(self.book_id, progress)
             self._es.save_progress(self.book_id, progress + 1)
 
-        response = self.extract_entities(text)
+        response = self.extract_entities(context + text)
 
         end_chunk_id = self.get_progress()
 
         self._es.save_entities_to_buffer(
             self.book_id, response, start_chunk_id, end_chunk_id
         )
+
+        return response
