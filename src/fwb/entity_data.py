@@ -7,10 +7,16 @@ class EntityData(BaseModel):
     """
 
     name: str = Field(..., description="Name of the entity")
-    summary: list[str] = Field(
-        default_factory=list,
-        description="List of historical summaries for the entity",
+    # summary: list[str] = Field(
+    #     default_factory=list,
+    #     description="List of historical summaries for the entity",
+    # )
+
+    # use string for easier serialization
+    summary: str = Field(
+        description="historical summaries for the entity",
     )
+
     categories: str
     relationships: dict[str, str] = Field(
         default_factory=dict,
