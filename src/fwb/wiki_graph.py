@@ -93,16 +93,6 @@ class WikiGraph:
                 )
             return None
 
-    def get_list_of_node(self, nodes: list[str]) -> list[EntityData]:
-        entity_data_list = []
-        for node in nodes:
-            entity_data = self.get_node(node)
-
-            if entity_data:
-                entity_data_list.append(entity_data)
-
-        return entity_data_list
-
     def delete_node(self, name: str):
         """
         Delete a node by its name.
