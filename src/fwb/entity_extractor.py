@@ -70,7 +70,11 @@ class EntityExtractor:
 
             progress = self.get_progress()
 
-            text += self._es.get_source_chunk(self.book_id, progress)
+            new_source = self._es.get_source_chunk(self.book_id, progress)
+            if new_source == "":
+                break
+
+            text += new_source
 
             self._es.save_progress(self.book_id, progress + 1)
 
