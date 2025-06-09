@@ -1,6 +1,6 @@
 .DS_Store
 .*DS_Store
-.envrc
+5envrc
 .direnv
 
 books
@@ -16,6 +16,6 @@ __pycache__
 
 tmp/
 *tmp*
-tmp.5*
 
-**.egg-info
+tmp.*
+*.egg-info

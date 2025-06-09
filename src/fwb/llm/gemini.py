@@ -32,7 +32,7 @@ class Gemini:
             return 0
         return _tokenizer.count_tokens(text).total_tokens
 
-    def chat(self, message) -> str:
+    def chat(self, message: str) -> str:
         """Send a chat message to the Gemini model and return the response."""
         if not isinstance(message, str):
             raise ValueError("Message must be a string.")
@@ -71,28 +71,21 @@ class Gemini:
 def main():
     gemini = Gemini()
     text = """
-    how many countries in Asia
+    if hong kong part of US?
 
-    you should respoonse in json
-    format like this:
-    for example:
-    {
-        "conuntries" : [
-            "China",
-            "India",
-            .
-            .
-            .
-            ]
-    }
-
-    you should only response in json format, no other text
+    if no you should not output anything, if yes, output only the relationship of them
     """
 
     response = gemini.chat(text)
 
     print("Response from Gemini:")
     print(gemini.parse_response(response))
+
+    if gemini.parse_response(response) is None:
+        print("response is None")
+
+    if gemini.parse_response(response) == "":
+        print("response is empty string")
 
 
 if __name__ == "__main__":
