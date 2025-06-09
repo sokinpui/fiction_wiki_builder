@@ -2,7 +2,7 @@ import json
 from typing import Set
 
 from .entity_data import EntityData
-from .entity_extractor import EntityExtractor
+from .entity_extractor import EmptyTextSourceError, EntityExtractor
 from .llm.gemini import Gemini
 from .wiki_graph import WikiGraph
 
@@ -67,6 +67,8 @@ class FictionWikiGraphBuilder:
         """read chunks and return entities list"""
 
         entities_str = self.reader.read(context)
+
+        print(f"Extracted entities:\n{entities_str}")
 
         if not entities_str:
             return []
@@ -136,14 +138,16 @@ class FictionWikiGraphBuilder:
         target_node.add(entity)
         context = self.get_context(target_node)
 
-        # suppose structured output
-        unparised_response = self._llm.chat(
-            context + self.merge_prompt + entity.summary
+        prompt = self.merge_prompt.format(
+            existing_entity_name=entity.name,
+            existing_entity_summary=context,
+            new_entity_name=entity.name,
+            new_entity_summary=entity.summary,
         )
 
         # llm should only output a new name if is not the same entity actually
         # else output empty string ""
-        response = self._llm.parse_response(unparised_response)
+        response = self._llm.chat(prompt)
 
         if response == "":
             # same entity, append the summary
@@ -166,14 +170,20 @@ class FictionWikiGraphBuilder:
             # active entities from last iteration
             context = self.get_context(self.active_entities)
 
-            entities = self.read_chunks(context)
-            if not entities:
-                print("No further entities found, stopping the build process.")
+            categories = self.graph.get_categories()
+            categories_str = "list of categories\n".join(categories)
+            context += f"\n---\n\nCategories:\n{categories_str}\n"
+
+            try:
+                entities = self.read_chunks(context)
+            except EmptyTextSourceError as e:
+                print("source is empty.")
                 break
 
             # clear active entities after context retrieved
             self.active_entities.clear()
 
+            # new active entities is formed here
             for entity in entities:
                 self.create_new_node(entity)
 

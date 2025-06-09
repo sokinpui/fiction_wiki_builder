@@ -2,6 +2,14 @@ from .es_storage import ESBuffer
 from .llm.gemini import Gemini
 
 
+class EmptyTextSourceError(Exception):
+    """Exception raised when the text source is empty."""
+
+    def __init__(self, message: str):
+        super().__init__(message)
+        self.message = message
+
+
 class EntityExtractor:
     """extract entities from book"""
 
@@ -18,16 +26,19 @@ class EntityExtractor:
         # init elasticsearch client
         self._es = ESBuffer()
 
-    def extract_entities(self, text: str) -> str:
+    def extract_entities(self, context: str, text: str) -> str:
         """
         prompts to AI to extract entities from the given text.
 
         return a json string with the extracted entities.
         """
 
-        source = text + self.extract_prompt
+        prompt = self.extract_prompt.format(
+            context=context,
+            text=text,
+        )
 
-        raw_output = self.model.chat(source)
+        raw_output = self.model.chat(prompt)
         response = self.model.parse_response(raw_output)
 
         return response
@@ -72,13 +83,15 @@ class EntityExtractor:
 
             new_source = self._es.get_source_chunk(self.book_id, progress)
             if new_source == "":
-                break
+                raise EmptyTextSourceError(
+                    f"Empty text source for book {self.book_id} at chapter {progress}"
+                )
 
             text += new_source
 
             self._es.save_progress(self.book_id, progress + 1)
 
-        response = self.extract_entities(context + text)
+        response = self.extract_entities(context, text)
 
         end_chunk_id = self.get_progress()
 
