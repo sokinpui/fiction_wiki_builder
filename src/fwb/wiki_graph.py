@@ -66,7 +66,7 @@ class WikiGraph:
             """
             session.run(query, node_a=node_a, node_b=node_b)
 
-    def get_node(self, name: str) -> EntityData | None:
+    def get_entity_node(self, name: str) -> EntityData | None:
         """Retrieve a node by its name, resolving to any aliases.
         Returns an EntityData object or None if not found."""
         with self.graph.session() as session:

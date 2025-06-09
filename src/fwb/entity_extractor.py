@@ -63,10 +63,15 @@ class EntityExtractor:
         Reads the book in chunks and extracts entities from each chunk.
         """
         text = ""
+
         start_chunk_id = self.get_progress()
+
         for i in range(1, self.chunk_length + 1):
+
             progress = self.get_progress()
+
             text += self._es.get_source_chunk(self.book_id, progress)
+
             self._es.save_progress(self.book_id, progress + 1)
 
         response = self.extract_entities(context + text)

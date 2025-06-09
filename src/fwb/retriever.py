@@ -17,7 +17,7 @@ class Retriever:
             raise ValueError("deep must be greater than or equal to 1")
 
         nodes = self.graph.bfs(node_name, deep)
-        entity_list = [self.graph.get_node(node) for node in nodes]
+        entity_list = [self.graph.get_entity_node(node) for node in nodes]
 
         retrieve_context = [
             f"{entity.name}:\n{entity.summary}\n\n"

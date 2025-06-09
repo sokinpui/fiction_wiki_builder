@@ -73,13 +73,19 @@ def main():
     text = """
     if hong kong part of US?
 
-    if yes you should output nothing, if yes, output only the relationship of them
+    if no you should not output anything, if yes, output only the relationship of them
     """
 
     response = gemini.chat(text)
 
     print("Response from Gemini:")
     print(gemini.parse_response(response))
+
+    if gemini.parse_response(response) is None:
+        print("response is None")
+
+    if gemini.parse_response(response) == "":
+        print("response is empty string")
 
 
 if __name__ == "__main__":
