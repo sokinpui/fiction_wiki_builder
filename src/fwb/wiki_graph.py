@@ -1,3 +1,5 @@
+from collections import deque
+
 from neo4j import GraphDatabase
 
 from .entity_data import EntityData
@@ -18,7 +20,7 @@ class WikiGraph:
 
         self.graph.verify_connectivity()
 
-    def close(self):
+    def close(self) -> None:
         """Close the connection to the Neo4j database."""
         if self.graph:
             self.graph.close()
@@ -28,35 +30,35 @@ class WikiGraph:
         with self.graph.session() as session:
             query = """
             MERGE (n:Entity {name: $name})
-            SET n.categories = $categories,
+            SET n.category = $category,
                 n.summary = $summary
             RETURN elementid(n)
             """
             result = session.run(
                 query,
                 name=entity_data.name,
-                categories=entity_data.categories,
+                category=entity_data.category,
                 summary=entity_data.summary,
             )
             node_id = result.single()[0]
             return node_id
 
-    def update_entity_node(self, entity_data: EntityData):
+    def update_entity_node(self, entity_data: EntityData) -> None:
         """Update an existing entity node."""
         with self.graph.session() as session:
             query = """
             MATCH (n:Entity {name: $name})
-            SET n.categories = $categories,
+            SET n.category = $category,
                 n.summary = $summary
             """
             session.run(
                 query,
                 name=entity_data.name,
-                categories=entity_data.categories,
+                category=entity_data.category,
                 summary=entity_data.summary,
             )
 
-    def create_alias(self, node_a: str, node_b: str):
+    def create_alias(self, node_a: str, node_b: str) -> None:
         """node B will point to node A as an alias."""
 
         with self.graph.session() as session:
@@ -80,7 +82,7 @@ class WikiGraph:
                 ELSE n_input
             END AS resolved_node
             RETURN resolved_node.name AS name,
-                   resolved_node.categories AS categories,
+                   resolved_node.category AS category,
                    resolved_node.summary AS summary
             """
             result = session.run(query, name=name)
@@ -88,12 +90,12 @@ class WikiGraph:
             if record:
                 return EntityData(
                     name=record["name"],
-                    categories=record["categories"],
+                    category=record["category"],
                     summary=record["summary"],
                 )
             return None
 
-    def delete_node(self, name: str):
+    def delete_node(self, name: str) -> None:
         """
         Delete a node by its name.
         remove all aliases associated with the node
@@ -105,14 +107,14 @@ class WikiGraph:
             """
             session.run(query, name=name)
 
-    def clear_all_data(self):
+    def clear_all_data(self) -> None:
         """Deletes all nodes and relationships. USE WITH CAUTION."""
         with self.graph.session() as session:
             query = "MATCH (n) DETACH DELETE n"
             session.run(query)
             print("All data cleared from the graph.")
 
-    def add_edge(self, source: str, target: str, edge_type: str):
+    def add_edge(self, source: str, target: str, edge_type: str) -> None:
         """Add an edge between two nodes."""
         with self.graph.session() as session:
             query = (
@@ -158,18 +160,19 @@ class WikiGraph:
                 return record["edge_type"]
             return None
 
-    def update_edge(self, source: str, target: str, edge_type: str):
-        """Update an existing edge between two nodes."""
+    def delete_edge(self, source: str, target: str) -> None:
+        """Delete an edge between two nodes."""
         with self.graph.session() as session:
-            query = (
-                """
-            MATCH (a:Entity {name: $source})-[r:%s]->(b:Entity {name: $target})
-            SET r.type = $edge_type
-            RETURN r
+            query = """
+            MATCH (a:Entity {name: $source})-[r]->(b:Entity {name: $target})
+            DELETE r
             """
-                % edge_type
-            )
-            session.run(query, source=source, target=target, edge_type=edge_type)
+            session.run(query, source=source, target=target)
+
+    def update_edge(self, source: str, target: str, edge_type: str) -> None:
+        """Update an existing edge between two nodes."""
+        self.delete_edge(source, target)
+        self.add_edge(source, target, edge_type)
 
     def is_edge_exists(self, source: str, target: str) -> bool:
         """Check if an edge exists between two nodes."""
@@ -184,34 +187,37 @@ class WikiGraph:
             return record["edge_exists"] if record else False
 
     def bfs(self, start_node: str, max_depth: int) -> list[str]:
-        """bfs with deep limit, return list of names"""
+        """BFS, return including the start node"""
+        if not self.get_entity_node(start_node):
+            print(f"Start node '{start_node}' not found or is not an Entity.")
+            return []
+
+        queue = deque([(start_node, 0)])
+        visited = {start_node}
+
+        result = []
+
+        while queue:
+            current_node, depth = queue.popleft()
+            result.append(current_node)
+
+            if depth < max_depth:
+                edges = self.get_edges_outgoing(current_node)
+                for edge_type, target_node in edges:
+                    if target_node not in visited:
+                        visited.add(target_node)
+                        queue.append((target_node, depth + 1))
+
+        return result
+
+    def get_categories(self) -> list[str]:
+        """Get all unique categories from the graph using a single, robust query."""
         with self.graph.session() as session:
             query = """
-            MATCH (n_input:Entity {name: $start_node_param})
-            OPTIONAL MATCH (n_input)-[:ALIAS]->(aliased_to:Entity)
-            WITH CASE
-                WHEN aliased_to IS NOT NULL THEN aliased_to
-                ELSE n_input
-            END AS resolved_s_node
-            WHERE resolved_s_node IS NOT NULL
-
-            CALL {
-                WITH resolved_s_node
-                MATCH path = (resolved_s_node)-[rels*0..$max_depth_param]->(target_node:Entity)
-                WHERE ALL(r IN rels WHERE type(r) <> 'ALIAS')
-                UNWIND nodes(path) AS bfs_node
-                WITH DISTINCT bfs_node
-                RETURN COLLECT(bfs_node.name) AS node_names_list
-            }
-            RETURN node_names_list
+            OPTIONAL MATCH (n:Entity)
+            WHERE n.category IS NOT NULL
+            RETURN collect(DISTINCT n.category) AS categories
             """
-            params = {
-                "start_node_param": start_node,
-                "max_depth_param": max_depth,
-            }
-            result = session.run(query, params)
-            record = result.single()
+            result = session.run(query).single()
 
-            if record and record["node_names_list"] is not None:
-                return record["node_names_list"]
-            return []
+            return result["categories"] if result else []
