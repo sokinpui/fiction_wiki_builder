@@ -15,4 +15,6 @@ __pycache__
 
 tmp/
 *tmp*
-tmp.*
+tmp.5*
+
+**.egg-info

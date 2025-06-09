@@ -8,4 +8,4 @@ httpx[socks]
 neo4j
 neo4j-rust-ext
 
- sentence-transformers
+sentence-transformers
