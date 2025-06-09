@@ -171,8 +171,7 @@ class FictionWikiGraphBuilder:
             context = self.get_context(self.active_entities)
 
             categories = self.graph.get_categories()
-            categories_str = "list of categories\n".join(categories)
-            context += f"\n---\n\nCategories:\n{categories_str}\n"
+            context += f"\n---\n\nCategories:\n{categories}\n"
 
             try:
                 entities = self.read_chunks(context)
@@ -191,10 +190,13 @@ class FictionWikiGraphBuilder:
 
 
 def main():
-    book_id = ""
-    grpah = WikiGraph()
 
-    builder = FictionWikiGraphBuilder(book_id, grpah)
+    book_id = "41814"
+    graph = WikiGraph()
+
+    graph.clear_all_data()
+
+    builder = FictionWikiGraphBuilder(book_id, graph)
 
     builder.build_wiki()
 
