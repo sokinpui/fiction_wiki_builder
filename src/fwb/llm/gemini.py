@@ -71,22 +71,9 @@ class Gemini:
 def main():
     gemini = Gemini()
     text = """
-    how many countries in Asia
+    if hong kong part of US?
 
-    you should respoonse in json
-    format like this:
-    for example:
-    {
-        "conuntries" : [
-            "China",
-            "India",
-            .
-            .
-            .
-            ]
-    }
-
-    you should only response in json format, no other text
+    if yes you should output nothing, if yes, output only the relationship of them
     """
 
     response = gemini.chat(text)

@@ -93,6 +93,16 @@ class WikiGraph:
                 )
             return None
 
+    def get_list_of_node(self, nodes: list[str]) -> list[EntityData]:
+        entity_data_list = []
+        for node in nodes:
+            entity_data = self.get_node(node)
+
+            if entity_data:
+                entity_data_list.append(entity_data)
+
+        return entity_data_list
+
     def delete_node(self, name: str):
         """
         Delete a node by its name.
@@ -171,7 +181,19 @@ class WikiGraph:
             )
             session.run(query, source=source, target=target, edge_type=edge_type)
 
-    def bfs(self, start_node: str, max_depth: int = 3) -> list[str]:
+    def is_edge_exists(self, source: str, target: str) -> bool:
+        """Check if an edge exists between two nodes."""
+        with self.graph.session() as session:
+            query = """
+            MATCH (a:Entity {name: $source})-[r]->(b:Entity {name: $target})
+            RETURN COUNT(r) > 0 AS edge_exists
+            """
+            result = session.run(query, source=source, target=target)
+            record = result.single()
+
+            return record["edge_exists"] if record else False
+
+    def bfs(self, start_node: str, max_depth: int) -> list[str]:
         """bfs with deep limit, return list of names"""
         with self.graph.session() as session:
             query = """
