@@ -40,7 +40,7 @@ services:
       - neo4j_logs:/logs
       # - ./neo4j/plugins:/plugins
     environment:
-      - NEO4J_AUTH=neo4j/P@ssw0rd
+      - NEO4J_AUTH=none
     restart: unless-stopped
 
 volumes:
