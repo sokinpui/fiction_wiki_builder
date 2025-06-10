@@ -1,10 +1,13 @@
 import json
+import logging
 from typing import Set
 
 from .entity_data import EntityData
 from .entity_extractor import EmptyTextSourceError, EntityExtractor
 from .llm.gemini import Gemini
 from .wiki_graph import WikiGraph
+
+logging.basicConfig(level=logging.INFO)
 
 
 class FictionWikiGraphBuilder:
@@ -51,7 +54,11 @@ class FictionWikiGraphBuilder:
         for node in focused_entities:
             if isinstance(node, EntityData):
                 self.active_entities.add(node)
-                context_nodes.update(self.graph.bfs(node.name, 1))
+                try:
+                    context_nodes.update(self.graph.bfs(node.name, 1))
+                except ValueError as e:
+                    print(f"Error in BFS for {node.name} in context retrieval: {e}")
+                    logging.debug(f"{e}")
 
                 for context_node in context_nodes:
                     entity_node = self.graph.get_entity_node(context_node)
@@ -221,7 +228,6 @@ def main():
     graph = WikiGraph()
 
     builder = FictionWikiGraphBuilder(book_id, graph)
-
     builder.build_wiki()
 
 
