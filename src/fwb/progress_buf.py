@@ -64,9 +64,9 @@ class ProgressBuffer:
         try:
             with open(progress_file, "r", encoding="utf-8") as f:
                 content = f.read().strip()
-                return int(content) if content else 0
+                return int(content) if content else 1
         except (FileNotFoundError, ValueError):
-            return 0
+            return 1
 
     def reset_progress(self, book_id: str) -> None:
         """Reset the reading progress by deleting 'progress.txt'."""

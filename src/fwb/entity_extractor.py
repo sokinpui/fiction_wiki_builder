@@ -1,5 +1,5 @@
-from .es_storage import ESBuffer
 from .llm.gemini import Gemini
+from .progress_buf import ProgressBuffer
 
 
 class EmptyTextSourceError(Exception):
@@ -24,7 +24,7 @@ class EntityExtractor:
         self.chunk_length: int = cuhnk_length
 
         # init elasticsearch client
-        self._es = ESBuffer()
+        self.buffer = ProgressBuffer()
 
     def extract_entities(self, context: str, text: str) -> str:
         """
@@ -55,19 +55,19 @@ class EntityExtractor:
         """
         Retrieves the progress of reading aka chapter number
         """
-        return self._es.get_progress(self.book_id)
+        return self.buffer.get_progress(self.book_id)
 
     def save_progress(self, progress: int) -> None:
         """
         Sets the progress of reading aka chapter number
         """
-        self._es.save_progress(self.book_id, progress)
+        self.buffer.save_progress(self.book_id, progress)
 
     def reset_progress(self) -> None:
         """
         Resets the progress of reading aka chapter number
         """
-        self._es.reset_progress(self.book_id)
+        self.buffer.reset_progress(self.book_id)
 
     def read(self, context: str) -> str:
         """
@@ -81,7 +81,7 @@ class EntityExtractor:
 
             progress = self.get_progress()
 
-            new_source = self._es.get_source_chunk(self.book_id, progress)
+            new_source = self.buffer.get_source_chunk(self.book_id, progress)
             if new_source == "":
                 raise EmptyTextSourceError(
                     f"Empty text source for book {self.book_id} at chapter {progress}"
@@ -89,14 +89,27 @@ class EntityExtractor:
 
             text += new_source
 
-            self._es.save_progress(self.book_id, progress + 1)
+            self.buffer.save_progress(self.book_id, progress + 1)
 
         response = self.extract_entities(context, text)
 
         end_chunk_id = self.get_progress()
 
-        self._es.save_entities_to_buffer(
+        self.buffer.save_entities_to_buffer(
             self.book_id, response, start_chunk_id, end_chunk_id
         )
 
         return response
+
+
+def main():
+    book_id = "41814"
+
+    extractor = EntityExtractor(book_id, cuhnk_length=1)
+    context = "This is a test context for entity extraction."
+    response = extractor.read(context)
+    print("Extracted Entities:", response)
+
+
+if __name__ == "__main__":
+    main()
