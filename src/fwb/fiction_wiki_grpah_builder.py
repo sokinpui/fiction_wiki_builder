@@ -148,7 +148,7 @@ class FictionWikiGraphBuilder:
             if not self.graph.get_entity_node(entity.name):
                 continue
 
-            for node, relationship in entity.relationships:
+            for node, relationship in entity.relationships.items():
                 self.graph.add_edge(entity.name, node, relationship)
                 print(
                     f"Linked {entity.name} to {node} with relationship {relationship}"

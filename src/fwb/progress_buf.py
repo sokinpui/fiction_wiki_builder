@@ -96,8 +96,8 @@ class ProgressBuffer:
             }
             # Save each entity document as its own JSON file
             entity_file_path = book_data_dir / f"{entity_id}.json"
-            with open(entity_file_path, "w", encoding="utf-8") as f:
-                json.dump(doc, f, indent=2)
+            with open(entity_file_path, "w") as f:
+                json.dump(doc, f, indent=2, ensure_ascii=False)
 
     def get_entities_from_buffer(self, book_id: str) -> list[dict]:
         """Retrieve all entities by reading all .json files from the book's data directory."""
