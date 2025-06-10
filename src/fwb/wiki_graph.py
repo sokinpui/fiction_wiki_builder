@@ -5,8 +5,8 @@ from neo4j import GraphDatabase
 from .entity_data import EntityData
 
 uri = "neo4j://localhost:7687"
-username = "neo4j"
-password = "P@ssw0rd"
+# username = "neo4j"
+# password = "P@ssw0rd"
 
 
 class WikiGraph:
@@ -14,9 +14,7 @@ class WikiGraph:
 
     def __init__(self):
         """Initialize the GraphStorage instance."""
-        self.graph = GraphDatabase.driver(
-            "neo4j://localhost:7687", auth=(username, password)
-        )
+        self.graph = GraphDatabase.driver(uri)
 
         self.graph.verify_connectivity()
 
