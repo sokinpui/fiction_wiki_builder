@@ -69,7 +69,7 @@ class EntityExtractor:
         """
         self.buffer.reset_progress(self.book_id)
 
-    def read(self, context: str) -> str:
+    def read(self, context: str) -> tuple[str, int, int]:
         """
         Reads the book in chunks and extracts entities from each chunk.
         """
@@ -99,7 +99,7 @@ class EntityExtractor:
             self.book_id, response, start_chunk_id, end_chunk_id
         )
 
-        return response
+        return response, start_chunk_id, end_chunk_id
 
 
 def main():

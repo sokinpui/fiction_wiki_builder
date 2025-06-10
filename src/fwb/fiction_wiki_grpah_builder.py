@@ -56,7 +56,8 @@ class FictionWikiGraphBuilder:
                 for context_node in context_nodes:
                     entity_node = self.graph.get_entity_node(context_node)
                     if entity_node:
-                        context += f"{entity_node.name}\n{entity_node.summary}\n\n"
+                        summary_text = "\n".join(entity_node.summary.values())
+                        context += f"{entity_node.name}\n{summary_text}\n\n"
 
             else:
                 raise ValueError("focused_entities should be a list of EntityData")
@@ -66,16 +67,39 @@ class FictionWikiGraphBuilder:
     def read_chunks(self, context: str) -> list[EntityData]:
         """read chunks and return entities list"""
 
-        entities_str = self.reader.read(context)
+        entities_str, start_chunk, end_chunk = self.reader.read(context)
 
-        print(f"Extracted entities:\n{entities_str}")
+        print(
+            f"Extracted entities from chunks {start_chunk}-{end_chunk - 1}:\n{entities_str}"
+        )
 
         if not entities_str:
             return []
 
         try:
-            entities = json.loads(entities_str)
-            return [EntityData(**entity) for entity in entities]
+            entities_json = json.loads(entities_str)
+
+            # Chapter key format: 'c1' for chunk 1, 'c2-3' for chunks 2 to 3.
+            chunk_range_end = end_chunk - 1
+            chunk_range = f"c{start_chunk}"
+            if chunk_range_end > start_chunk:
+                chunk_range += f"-{chunk_range_end}"
+
+            result_entities = []
+            for entity_payload in entities_json:
+                # The AI returns summary as a string. We pop it and handle it separately.
+                new_summary_text = entity_payload.pop("summary", "")
+
+                # Create the EntityData object without the summary first
+                entity = EntityData(**entity_payload)
+
+                # Now, add the summary with the chapter key
+                if new_summary_text:
+                    entity.summary[chunk_range] = new_summary_text
+
+                result_entities.append(entity)
+
+            return result_entities
 
         except json.JSONDecodeError as e:
             print(f"Error decoding JSON: {e}")
@@ -138,11 +162,13 @@ class FictionWikiGraphBuilder:
         target_node.add(entity)
         context = self.get_context(target_node)
 
+        new_entity_summary = "\n".join(entity.summary.values())
+
         prompt = self.merge_prompt.format(
             existing_entity_name=entity.name,
             existing_entity_summary=context,
             new_entity_name=entity.name,
-            new_entity_summary=entity.summary,
+            new_entity_summary=new_entity_summary,
         )
 
         # llm should only output a new name if is not the same entity actually
@@ -154,7 +180,7 @@ class FictionWikiGraphBuilder:
             print(f"Entity {entity.name} already exists, merging summaries.")
             existing_node = self.graph.get_entity_node(entity.name)
             if existing_node:
-                existing_node.summary += "\n" + entity.summary
+                existing_node.summary.update(entity.summary)
                 self.graph.update_entity_node(existing_node)
                 self.add_active_entities(existing_node)
         else:
@@ -193,8 +219,6 @@ def main():
 
     book_id = "41814"
     graph = WikiGraph()
-
-    graph.clear_all_data()
 
     builder = FictionWikiGraphBuilder(book_id, graph)
 
