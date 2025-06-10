@@ -9,6 +9,8 @@ from .wiki_graph import WikiGraph
 
 logging.basicConfig(level=logging.INFO)
 
+CONTEXT_SIZE = 20  # Number of recent summaries to include in context
+
 
 class FictionWikiGraphBuilder:
     """
@@ -49,21 +51,23 @@ class FictionWikiGraphBuilder:
 
         context = ""
 
-        context_nodes = set()
-
         for node in focused_entities:
             if isinstance(node, EntityData):
-                try:
-                    context_nodes.update(self.graph.bfs(node.name, 1))
-                except ValueError as e:
-                    print(f"Error in BFS for {node.name} in context retrieval: {e}")
-                    logging.debug(f"{e}")
+                entity_node = self.graph.get_entity_node(node.name)
+                if entity_node:
+                    summary_items = entity_node.summary.items()
 
-                for context_node in context_nodes:
-                    entity_node = self.graph.get_entity_node(context_node)
-                    if entity_node:
-                        summary_text = "\n".join(entity_node.summary.values())
-                        context += f"{entity_node.name}\n{summary_text}\n\n"
+                    sorted_summary_items = sorted(
+                        summary_items,
+                        key=lambda item: int(item[0].lstrip("c").split("-")[0]),
+                    )
+
+                    recent_summary_texts = [
+                        text for key, text in sorted_summary_items[-CONTEXT_SIZE:]
+                    ]
+
+                    summary_text = "\n".join(recent_summary_texts)
+                    context += f"{entity_node.name}\n{summary_text}\n\n"
 
             else:
                 raise ValueError("focused_entities should be a list of EntityData")
