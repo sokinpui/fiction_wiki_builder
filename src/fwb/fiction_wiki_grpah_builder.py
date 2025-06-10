@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Set
+from typing import List
 
 from .entity_data import EntityData
 from .entity_extractor import EmptyTextSourceError, EntityExtractor
@@ -26,7 +26,7 @@ class FictionWikiGraphBuilder:
         self.graph = graph
         self.reader = EntityExtractor(book_id)
 
-        self.active_entities: Set[EntityData] = set()
+        self.active_entities: List[EntityData] = []
 
         self.merge_prompt = self._get_merge_prompt("./prompt/merge_entity.txt")
 
@@ -41,7 +41,7 @@ class FictionWikiGraphBuilder:
         except FileNotFoundError:
             raise FileNotFoundError(f"Merge prompt file not found at {path}")
 
-    def get_context(self, focused_entities: Set[EntityData]) -> str:
+    def get_context(self, focused_entities: List[EntityData]) -> str:
         """get context from the text"""
 
         if not focused_entities:
@@ -53,7 +53,6 @@ class FictionWikiGraphBuilder:
 
         for node in focused_entities:
             if isinstance(node, EntityData):
-                self.active_entities.add(node)
                 try:
                     context_nodes.update(self.graph.bfs(node.name, 1))
                 except ValueError as e:
@@ -69,16 +68,13 @@ class FictionWikiGraphBuilder:
             else:
                 raise ValueError("focused_entities should be a list of EntityData")
 
+        print(f"Context:\n{context[:500]}...")
         return context
 
     def read_chunks(self, context: str) -> list[EntityData]:
         """read chunks and return entities list"""
 
         entities_str, start_chunk, end_chunk = self.reader.read(context)
-
-        print(
-            f"Extracted entities from chunks {start_chunk}-{end_chunk - 1}:\n{entities_str}"
-        )
 
         if not entities_str:
             return []
@@ -120,23 +116,26 @@ class FictionWikiGraphBuilder:
         return False
 
     def add_active_entities(self, entity: EntityData) -> None:
-        """add an entity to active entities set"""
+        """Add an entity to active entities list, ensuring uniqueness by name."""
         if not isinstance(entity, EntityData):
             raise ValueError("entities should be an instance of EntityData")
 
-        if not self.check_existing_entity(entity):
-            self.active_entities.add(entity)
-            print(f"Added {entity.name} to active entities")
+        if not any(e.name == entity.name for e in self.active_entities):
+            self.active_entities.append(entity)
+            print(f"Added {entity.name} to active entities.")
         else:
-            print(f"{entity.name} already exists in the graph, skipping addition")
+            print(f"{entity.name} is already active, skipping addition.")
 
-    def create_new_node(self, entity: EntityData) -> None:
+    def create_or_update_node(self, entity: EntityData) -> None:
         """create or merge a entity node in the graph"""
         if not isinstance(entity, EntityData):
             raise ValueError("entities should be an instance of EntityData")
 
         if self.check_existing_entity(entity):
-            self.prompt_ai_to_merge(entity)
+            existing_node = self.graph.get_entity_node(entity.name)
+            existing_node.summary.update(entity.summary)
+            self.graph.update_entity_node(existing_node)
+            self.add_active_entities(existing_node)
         else:
             self.graph.add_entity_node(entity)
             self.add_active_entities(entity)
@@ -149,53 +148,14 @@ class FictionWikiGraphBuilder:
                 continue
 
             for node, relationship in entity.relationships.items():
-                self.graph.add_edge(entity.name, node, relationship)
+                parsed_rel = relationship.replace(",", "_").replace(" ", "_")
+                parsed_rel = relationship.replace(";", "_").replace("/", "_")
+                parsed_rel = relationship.replace("&", "_").replace("\\", "_")
+                parsed_rel = relationship.replace("、", "_")
+                self.graph.add_edge(entity.name, node, parsed_rel)
                 print(
                     f"Linked {entity.name} to {node} with relationship {relationship}"
                 )
-
-    def prompt_ai_to_merge(self, entity: EntityData) -> None:
-        """
-        prompt AI to merge entities
-        check if the entity is actually related to the existing entity
-        if yes: append the summary to the existing summary
-        if no: rename and create a new node
-        """
-        if not isinstance(entity, EntityData):
-            raise ValueError("entity should be an instance of EntityData")
-
-        # get the context of the entity that have the same name
-        target_node: Set[EntityData] = set()
-        target_node.add(entity)
-        context = self.get_context(target_node)
-
-        new_entity_summary = "\n".join(entity.summary.values())
-
-        prompt = self.merge_prompt.format(
-            existing_entity_name=entity.name,
-            existing_entity_summary=context,
-            new_entity_name=entity.name,
-            new_entity_summary=new_entity_summary,
-        )
-
-        # llm should only output a new name if is not the same entity actually
-        # else output empty string ""
-        response = self._llm.chat(prompt)
-
-        if response == "":
-            # same entity, append the summary
-            print(f"Entity {entity.name} already exists, merging summaries.")
-            existing_node = self.graph.get_entity_node(entity.name)
-            if existing_node:
-                existing_node.summary.update(entity.summary)
-                self.graph.update_entity_node(existing_node)
-                self.add_active_entities(existing_node)
-        else:
-            # different entity, create a new node
-            print(f"Entity {entity.name} is different, renaming to {response}.")
-            entity.name = response
-            self.graph.add_entity_node(entity)
-            self.add_active_entities(entity)
 
     def build_wiki(self) -> None:
         """build the wiki graph"""
@@ -217,7 +177,7 @@ class FictionWikiGraphBuilder:
 
             # new active entities is formed here
             for entity in entities:
-                self.create_new_node(entity)
+                self.create_or_update_node(entity)
 
             self.link_relationship()
 

@@ -1,4 +1,5 @@
 import os
+import re
 
 from google import genai
 from vertexai.preview import tokenization
@@ -25,6 +26,31 @@ _model = genai.Client(api_key=_api_key)
 class Gemini:
     def __init__(self):
         pass
+
+    def generate_structured_json(self, message: str, schema) -> str:
+        """The model's response as a JSON string."""
+        if not isinstance(message, str):
+            raise ValueError("Message must be a string.")
+
+        for code in model_codes:
+            try:
+                # Use a model that supports structured output, like 1.5 Pro or Flash
+                model_to_use = "gemini-1.5-pro-latest"  # Or another suitable model
+
+                response = _model.models.generate_content(
+                    model=model_to_use,
+                    contents=message,
+                    config={
+                        "response_mime_type": "application/json",
+                        "response_schema": schema,
+                    },
+                )
+                return response.text
+            except Exception as e:
+                print(f"Error with model {code}: {e}")
+                continue
+
+        raise RuntimeError("All models failed to generate content.")
 
     def token_count(self, text: str) -> int:
         """Count the number of tokens in a given text."""
@@ -56,13 +82,21 @@ class Gemini:
             if not response:
                 return ""
 
-            # Remove markdown code block
-            response = (
-                response.strip().replace("```json", "").replace("```", "").strip()
-            )
+            # Regular expression to find a JSON block, supporting both ```json and ```
+            # It captures the content between the backticks.
+            # re.DOTALL flag allows '.' to match newline characters.
+            pattern = r"```(?:json)?\s*\n?(.*?)\n?\s*```"
 
-            # Convert to dictionary
-            return response
+            match = re.search(pattern, response, re.DOTALL)
+
+            if match:
+                # If a markdown block is found, return its content, stripped of whitespace.
+                return match.group(1).strip()
+            else:
+                # If no markdown block is found, assume the entire response is the JSON string.
+                # This maintains the original behavior for plain JSON responses.
+                return response.strip()
+
         except Exception as e:
             print(f"Error parsing response: {e}")
             return ""

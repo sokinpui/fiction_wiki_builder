@@ -39,6 +39,7 @@ class EntityExtractor:
         )
 
         raw_output = self.model.chat(prompt)
+        print(f"Raw output from model:\n{raw_output}")
         response = self.model.parse_response(raw_output)
 
         return response
@@ -76,6 +77,7 @@ class EntityExtractor:
         text = ""
 
         start_chunk_id = self.get_progress()
+        print(f"Reading book {self.book_id} from chapter {start_chunk_id}")
 
         for i in range(1, self.chunk_length + 1):
 
