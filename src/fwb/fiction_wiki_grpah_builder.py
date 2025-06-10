@@ -1,5 +1,6 @@
 import json
 import logging
+import sys
 from typing import List
 
 from .entity_data import EntityData
@@ -66,7 +67,7 @@ class FictionWikiGraphBuilder:
                         text for key, text in sorted_summary_items[-CONTEXT_SIZE:]
                     ]
 
-                    summary_text = "\n".join(recent_summary_texts)
+                    summary_text = "\n\n".join(recent_summary_texts)
                     context += f"{entity_node.name}\n{summary_text}\n\n"
 
             else:
@@ -178,13 +179,17 @@ class FictionWikiGraphBuilder:
             while True:
                 try:
                     entities = self.read_chunks(context)
+                    if len(entities) == 0:
+                        print("No entities found in the current context.")
+                        print("Ending the build process.")
+                        print("something went wrong, please check the source.")
+                        sys.exit(1)
                     break
                 except EmptyTextSourceError as e:
                     print("source is empty.")
-                    break
+                    sys.exit(1)
                 except json.JSONDecodeError as e:
                     print(f"Error decoding JSON: {e}")
-                    break
                     continue
 
             # clear active entities after context retrieved
