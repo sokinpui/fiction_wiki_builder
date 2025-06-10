@@ -1,3 +1,4 @@
+import json
 from collections import deque
 
 from neo4j import GraphDatabase
@@ -32,11 +33,12 @@ class WikiGraph:
                 n.summary = $summary
             RETURN elementid(n)
             """
+            summary_json = json.dumps(entity_data.summary)
             result = session.run(
                 query,
                 name=entity_data.name,
                 category=entity_data.category,
-                summary=entity_data.summary,
+                summary=summary_json,  # Pass the JSON string
             )
             node_id = result.single()[0]
             return node_id
@@ -49,11 +51,12 @@ class WikiGraph:
             SET n.category = $category,
                 n.summary = $summary
             """
+            summary_json = json.dumps(entity_data.summary)
             session.run(
                 query,
                 name=entity_data.name,
                 category=entity_data.category,
-                summary=entity_data.summary,
+                summary=summary_json,  # Pass the JSON string
             )
 
     def create_alias(self, node_a: str, node_b: str) -> None:
@@ -86,10 +89,13 @@ class WikiGraph:
             result = session.run(query, name=name)
             record = result.single()
             if record:
+                # deserialize the summary from JSON string
+                summary_str = record["summary"] or "{}"
+                summary_dict = json.loads(summary_str)
                 return EntityData(
                     name=record["name"],
                     category=record["category"],
-                    summary=record["summary"],
+                    summary=summary_dict,
                 )
             return None
 

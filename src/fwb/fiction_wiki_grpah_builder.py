@@ -165,7 +165,7 @@ class FictionWikiGraphBuilder:
             raise ValueError("entity should be an instance of EntityData")
 
         # get the context of the entity that have the same name
-        target_node = set()
+        target_node: Set[EntityData] = set()
         target_node.add(entity)
         context = self.get_context(target_node)
 
@@ -224,7 +224,7 @@ class FictionWikiGraphBuilder:
 
 def main():
 
-    book_id = "41814"
+    book_id = "46029"
     graph = WikiGraph()
 
     builder = FictionWikiGraphBuilder(book_id, graph)
