@@ -148,10 +148,15 @@ class FictionWikiGraphBuilder:
                 continue
 
             for node, relationship in entity.relationships.items():
-                parsed_rel = relationship.replace(",", "_").replace(" ", "_")
-                parsed_rel = relationship.replace(";", "_").replace("/", "_")
-                parsed_rel = relationship.replace("&", "_").replace("\\", "_")
-                parsed_rel = relationship.replace("、", "_")
+                parsed_rel = (
+                    relationship.replace(",", "_")
+                    .replace(" ", "_")
+                    .replace(";", "_")
+                    .replace("/", "_")
+                    .replace("&", "_")
+                    .replace("\\", "_")
+                    .replace("、", "_")
+                )
                 self.graph.add_edge(entity.name, node, parsed_rel)
                 print(
                     f"Linked {entity.name} to {node} with relationship {relationship}"
@@ -166,11 +171,17 @@ class FictionWikiGraphBuilder:
             categories = self.graph.get_categories()
             context += f"\n---\n\nCategories:\n{categories}\n"
 
-            try:
-                entities = self.read_chunks(context)
-            except EmptyTextSourceError as e:
-                print("source is empty.")
-                break
+            while True:
+                try:
+                    entities = self.read_chunks(context)
+                    break
+                except EmptyTextSourceError as e:
+                    print("source is empty.")
+                    break
+                except json.JSONDecodeError as e:
+                    print(f"Error decoding JSON: {e}")
+                    break
+                    continue
 
             # clear active entities after context retrieved
             self.active_entities.clear()
@@ -180,6 +191,9 @@ class FictionWikiGraphBuilder:
                 self.create_or_update_node(entity)
 
             self.link_relationship()
+
+            progress = self.reader.get_progress()
+            self.reader.save_progress(progress + 1)
 
 
 def main():

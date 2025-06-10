@@ -91,8 +91,6 @@ class EntityExtractor:
 
             text += new_source
 
-            self.buffer.save_progress(self.book_id, progress + 1)
-
         response = self.extract_entities(context, text)
 
         end_chunk_id = self.get_progress()
