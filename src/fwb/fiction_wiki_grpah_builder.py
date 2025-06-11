@@ -68,7 +68,7 @@ class FictionWikiGraphBuilder:
                     ]
 
                     summary_text = "\n\n".join(recent_summary_texts)
-                    context += f"{entity_node.name}\n{summary_text}\n\n"
+                    context += f"{entity_node.name}\n{summary_text}\n\n\n"
 
             else:
                 raise ValueError("focused_entities should be a list of EntityData")
@@ -193,7 +193,7 @@ class FictionWikiGraphBuilder:
                     continue
 
             # clear active entities after context retrieved
-            self.active_entities.clear()
+            self.active_entities = []
 
             # new active entities is formed here
             for entity in entities:

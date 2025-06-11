@@ -5,7 +5,7 @@ from google import genai
 from vertexai.preview import tokenization
 
 model_codes = [
-    # "gemini-2.5-pro-preview-03-25", # not support for free tier now
+    # "gemini-2.5-pro-preview-03-25",  # not support for free tier now
     "gemini-2.5-flash-preview-05-20",
     "gemini-2.0-flash-thinking-exp-01-21",
     "gemini-2.0-flash",
@@ -85,7 +85,7 @@ class Gemini:
             # Regular expression to find a JSON block, supporting both ```json and ```
             # It captures the content between the backticks.
             # re.DOTALL flag allows '.' to match newline characters.
-            pattern = r"```(?:json)?\s*\n?(.*?)\n?\s*```"
+            pattern = r"```json\s*\n?(.*?)\n?\s*```"
 
             match = re.search(pattern, response, re.DOTALL)
 
