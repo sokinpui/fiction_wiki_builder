@@ -36,7 +36,7 @@ services:
       - "7474:7474" # HTTP
       - "7687:7687" # Bolt
     volumes:
-      - neo4j_data:/data
+      - neo4j:/data
       - neo4j_logs:/logs
       # - ./neo4j/plugins:/plugins
     environment:
@@ -45,6 +45,6 @@ services:
 
 volumes:
   # elasticsearch_data:
-  neo4j_data:
+  neo4j:
   neo4j_logs:
 
