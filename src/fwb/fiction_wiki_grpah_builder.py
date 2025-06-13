@@ -199,7 +199,11 @@ class FictionWikiGraphBuilder:
             for entity in entities:
                 self.create_or_update_node(entity)
 
-            self.link_relationship()
+            try:
+                self.link_relationship()
+            except Exception as e:
+                logging.error(f"Error linking relationships: {e}")
+                continue
 
             progress = self.reader.get_progress()
             self.reader.save_progress(progress + 1)
