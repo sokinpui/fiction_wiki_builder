@@ -91,6 +91,8 @@ class EntityExtractor:
 
             text += new_source
 
+        print(f"Extracting entities from text: {text[:100]}...")
+
         response = self.extract_entities(context, text)
 
         end_chunk_id = self.get_progress()

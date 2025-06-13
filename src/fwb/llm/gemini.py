@@ -8,9 +8,12 @@ model_codes = [
     # "gemini-2.5-pro-preview-03-25",  # not support for free tier now
     "gemini-2.5-flash-preview-05-20",
     "gemini-2.0-flash-thinking-exp-01-21",
+    "gemini-2.0-flash-preview-image-generation",
     "gemini-2.0-flash",
+    "gemini-2.0-flash-exp",
     "gemini-2.0-flash-lite",
     "gemini-1.5-flash",
+    "gemini-1.5-flash-8b",
     "gemma-3-27b-it",
 ]
 

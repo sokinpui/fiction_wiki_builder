@@ -10,7 +10,7 @@ from .wiki_graph import WikiGraph
 
 logging.basicConfig(level=logging.INFO)
 
-CONTEXT_SIZE = 20  # Number of recent summaries to include in context
+CONTEXT_SIZE = 10  # Number of recent summaries to include in context
 
 
 class FictionWikiGraphBuilder:
@@ -31,18 +31,7 @@ class FictionWikiGraphBuilder:
 
         self.active_entities: List[EntityData] = []
 
-        self.merge_prompt = self._get_merge_prompt("./prompt/merge_entity.txt")
-
         self._llm = Gemini()
-
-    @staticmethod
-    def _get_merge_prompt(path) -> str:
-        """get merge prompt from file"""
-        try:
-            with open(path, "r") as file:
-                return file.read()
-        except FileNotFoundError:
-            raise FileNotFoundError(f"Merge prompt file not found at {path}")
 
     def get_context(self, focused_entities: List[EntityData]) -> str:
         """get context from the text"""
